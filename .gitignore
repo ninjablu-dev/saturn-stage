@@ -1,0 +1,7 @@
+# Cache Python
+__pycache__/
+*.pyc
+
+# Dati intermedi o pesanti non necessari
+*.log
+.DS_Store
