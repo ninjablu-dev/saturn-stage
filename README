@@ -1,0 +1,20 @@
+# Saturn.jl (saturn-stage)
+
+Julia implementation and benchmark suite for the **Saturn coefficient**, an unsupervised metric designed to evaluate both local and global structure preservation in UMAP dimensionality reduction.
+
+Based on the paper:
+> Davide Chicco, Simone Melzi, Francesca Gasparini, and Giuseppe Jurman (2026). *The advantages of our proposed Saturn coefficient over continuity and trustworthiness for UMAP dimensionality reduction evaluation*. PeerJ Computer Science, 12:e3424. DOI: [10.7717/peerj-cs.3424](https://doi.org/10.7717/peerj-cs.3424)
+
+## Project Structure
+Organized according to Noble (2009) and Schnell (2015) guidelines:
+- `data/`: Standardized CSV test inputs (`input_data.csv`, `umap_output_layout.csv`) and target Ground Truth values (`target_score.txt`).
+- `scripts/`: Python benchmark scripts to generate deterministic reference datasets.
+- `src/`: Core Julia implementation (`Saturn.jl`).
+- `test/`: Automated test suite comparing Julia outputs against Python reference calculations.
+
+## Authors
+- Francesco Mandunzio (Matr. 928206) - Università degli Studi di Milano-Bicocca
+- Supervisor: Prof. Davide Chicco (DISCo, Università degli Studi di Milano-Bicocca)
+
+## License
+Released under the [MIT License](LICENSE).
