@@ -4,7 +4,7 @@ import scipy
 import umap.umap_ as umap
 from saturnscore import Saturn_coefficient
 
-print("=== Generazione Ground Truth Saturn (Esempio Ufficiale DISCo) ===")
+print("=== Generazione Ground Truth Saturn ===")
 
 # 1. Definizione dimensioni e seed di riproducibilità
 base = 120
@@ -15,11 +15,11 @@ np.random.seed(this_random_seed)
 # Generazione matrice casuale gaussiana (120 righe x 200 colonne)
 input_data = np.random.randn(base, height)
 
-# 2. Salvataggio della matrice originale in CSV per Julia (Passo 4 della traccia)
+# 2. Salvataggio della matrice originale in CSV per Julia
 np.savetxt("data/input_data.csv", input_data, delimiter=",", fmt="%.8f")
 print("-> Matrice di partenza salvata in: data/input_data.csv (120x200)")
 
-# 3. Parametri UMAP come da script del docente
+# 3. Parametri UMAP come da script di riferimento
 these_n_neighbors = 20
 this_min_dist = 0.01
 these_n_components = 2
