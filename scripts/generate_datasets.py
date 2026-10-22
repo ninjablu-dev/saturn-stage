@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from sklearn.datasets import make_blobs, make_circles, make_moons, make_s_curve
 
-output_dir = "data/synthetic"
+output_dir = os.path.join("..", "data", "geometric_datasets")
 os.makedirs(output_dir, exist_ok=True)
 
 # 1. Neat Blobs (1050 campioni, cluster ben separati, come da Tabella 1 del paper)
@@ -21,4 +21,4 @@ pd.DataFrame(X_circles, columns=["x", "y"]).to_csv(os.path.join(output_dir, "dat
 X_scurve, _ = make_s_curve(n_samples=1000, noise=0.05, random_state=42)
 pd.DataFrame(X_scurve[:, [0, 2]], columns=["x", "y"]).to_csv(os.path.join(output_dir, "dataset_scurve.csv"), index=False)
 
-print("Tutti i dataset CSV sono stati generati con successo in data/synthetic/")
+print("Tutti i dataset CSV sono stati generati con successo in data/geometric_datasets/")

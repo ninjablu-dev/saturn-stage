@@ -33,10 +33,12 @@ end
 
 println("\nLa matrice centrata è:\n", A1)
 
+# Get the number of rows and columns in X1 and the number of columns in X2
 n, p = size(A)
 q = size(B, 2)
 
-AA = A * A'
+	AA = A * A'
+	BB = B * B'
 
 	pq = p * q
 	pp = p * p
@@ -47,3 +49,10 @@ AA = A * A'
 	AAs = As * As'
 	BBs = Bs * Bs'
 println("\nLa matrice del prodotto matriciale tra B(standardizzata) e B(standardizzata) trasposta è:\n", BBs)
+
+xy = tr(AAs * BBs) / (pq - (n-1) / (n-2) * (pq - tr(AAs * BBs) / (n-1)^2))
+xx = tr(AAs * AAs) / (pp - (n-1) / (n-2) * (pp - tr(AAs * AAs) / (n-1)^2))
+yy = tr(BBs * BBs) / (qq - (n-1) / (n-2) * (qq - tr(BBs * BBs) / (n-1)^2))
+
+RVadj_value = (tr(AA * BB) / xy) / (sqrt(tr(AA * AA) / xx * tr(BB * BB) / yy))
+println("\nL' RV adjusted value è: ",RVadj_value)
