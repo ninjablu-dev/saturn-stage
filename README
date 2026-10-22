@@ -12,6 +12,29 @@ Organized according to Noble (2009) and Schnell (2015) guidelines:
 - `src/`: Core Julia implementation (`Saturn.jl`).
 - `test/`: Automated test suite comparing Julia outputs against Python reference calculations.
 
+##Running the Julia Implementation
+
+Run the main Julia script from the project root directory:
+
+julia src/Saturn.jl
+
+Ensure that Julia and all required dependencies are installed.
+
+
+##Generating Synthetic Datasets
+
+Synthetic datasets can be generated using the Python scripts in scripts/. Run the dataset generation script from the project root directory:
+
+python scripts/generate_synthetic_data.py
+
+The generated CSV files are saved in data/synthetic/.
+
+##Random Seeds
+
+The Python dataset generation script uses the random_state parameter to ensure reproducibility. The default seed is 42 for all four synthetic datasets.
+
+To generate different dataset realizations, modify the corresponding random_state values in the Python script. Keeping the same seeds and software environment allows the datasets to be reproduced, while changing the seeds generates different realizations.
+
 ## Authors
 - Francesco Mandunzio (Matr. 928206) - Università degli Studi di Milano-Bicocca
 - Supervisor: Prof. Davide Chicco (DISCo, Università degli Studi di Milano-Bicocca)
