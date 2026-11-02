@@ -1,113 +1,156 @@
 module Saturn
 
-using LinearAlgebra
 using Statistics
+using LinearAlgebra
 
-export SaturnCoefficient, AdjustedRV, standard_scaler, pairwise_euclidean
+export standard_scaler, standardize_ddof1, pairwise_euclidean, AdjustedRV, SaturnCoefficient
 
-function standardize_ddof1(mat::AbstractMatrix{<:Real})
-    m = mean(mat, dims=1)
-    d = std(mat, dims=1) # ddof=1 di default in Julia
-    d_safe = ifelse.(d .== 0, 1.0, σ)
-    return (mat .- m) ./ d_safe
+"""
+Standardizzazione ddof=0 in-place senza allocare nuove matrici.
+"""
+function standard_scaler!(out::Matrix{Float64}, mat::Matrix{Float64})
+    n, p = size(mat)
+    @inbounds for j in 1:p
+        μ = 0.0
+        @simd for i in 1:n
+            μ += mat[i, j]
+        end
+        μ /= n
+        
+        var_sum = 0.0
+        @simd for i in 1:n
+            diff = mat[i, j] - μ
+            var_sum += diff * diff
+        end
+        σ = sqrt(var_sum / n)
+        σ_safe = σ == 0.0 ? 1.0 : σ
+        
+        @simd for i in 1:n
+            out[i, j] = (mat[i, j] - μ) / σ_safe
+        end
+    end
+    return out
 end
 
-function AdjustedRV(X1::AbstractMatrix{<:Real}, X2::AbstractMatrix{<:Real}; 
-                    version::String="Maye", center::Bool=true)
-                    
-    # 1. Verifica preliminare delle dimensioni (stesso numero di righe/campioni n)
-    nrows1, ncols1 = size(X1)
-    nrows2, ncols2 = size(X2)
-    
-    if nrows1 != nrows2
-        throw(DimensionMismatch("X1 e X2 devono avere lo stesso numero di righe (campioni). Trovate: $nrows1 e $nrows2."))
-    end
-    
-    n = nrows1
-    
-    # Center the matrices by subtracting the mean of each column, if specified
-    if center == true
-        X1 = X1 .- mean(X1, dims = 1)
-        X2 = X2 .- mean(X2, dims = 1)
-    end
-
-    # Compute the cross-product matrices for X1 and X2
-    AA = X1 * X1'
-    BB = X2 * X2'
-
-    if version == "Maye"
-        ncols_prod = ncols1 * ncols2
-        ncols_1_sq = ncols1^2
-        ncols_2_sq = ncols2^2
-
-        # Standardize X1 and X2 if needed
-        X1s = standardize_ddof1(X1)
-        X2s = standardize_ddof1(X2)
-        AAs = X1s * X1s'
-        BBs = X2s * X2s'
-
-        # Calculate intermediate values for RV adjustment
-        xy = tr(AAs * BBs) / (ncols_prod - (n-1) / (n-2) * (ncols_prod - tr(AAs * BBs) / (n-1)^2))
-        xx = tr(AAs * AAs) / (ncols_1_sq - (n-1) / (n-2) * (ncols_1_sq - tr(AAs * AAs) / (n-1)^2))
-        yy = tr(BBs * BBs) / (ncols_2_sq - (n-1) / (n-2) * (ncols_2_sq - tr(BBs * BBs) / (n-1)^2))
-
-        # Calculate the adjusted RV value
-        RVadj_value = (tr(AA * BB) / xy) / (sqrt(tr(AA * AA) / xx * tr(BB * BB) / yy))
-        return RVadj_value
-
-    elseif version == "Ghaziri"
-        # Calculate the RV coefficient
-        rv = tr(AA * BB) / sqrt(tr(AA * AA) * tr(BB * BB))
-        # Calculate the mean RV under the null hypothesis
-        mrvB = sqrt(tr(AA)^2 / tr(AA * AA)) * sqrt(tr(BB)^2 / tr(BB * BB)) / (n - 1)
-        # Adjusted RV coefficient
-        aRV = (rv - mrvB) / (1 - mrvB)
-        return aRV
-
-    else
-        throw(ArgumentError("Versione non supportata: '$version'. Utilizzare 'Maye' o 'Ghaziri'."))
-    end
+function standard_scaler(mat::Matrix{Float64})
+    out = similar(mat)
+    return standard_scaler!(out, mat)
 end
 
-function standard_scaler(mat::AbstractMatrix{<:Real})
-    μ = mean(mat, dims=1)
-    σ = std(mat, dims=1, corrected=false)
-    σ_safe = ifelse.(σ .== 0, 1.0, σ)
-    return (mat .- μ) ./ σ_safe
+function standardize_ddof1!(out::Matrix{Float64}, mat::Matrix{Float64})
+    n, p = size(mat)
+    @inbounds for j in 1:p
+        μ = 0.0
+        @simd for i in 1:n
+            μ += mat[i, j]
+        end
+        μ /= n
+        
+        var_sum = 0.0
+        @simd for i in 1:n
+            diff = mat[i, j] - μ
+            var_sum += diff * diff
+        end
+        σ = sqrt(var_sum / (n - 1))
+        σ_safe = σ == 0.0 ? 1.0 : σ
+        
+        @simd for i in 1:n
+            out[i, j] = (mat[i, j] - μ) / σ_safe
+        end
+    end
+    return out
 end
 
-function pairwise_euclidean(mat::AbstractMatrix{<:Real})
-    n = size(mat, 1)
-    D = zeros(Float64, n, n)
+function standardize_ddof1(mat::Matrix{Float64})
+    out = similar(mat)
+    return standardize_ddof1!(out, mat)
+end
+
+"""
+Calcolo ultra-veloce della matrice di distanza euclidea tramite BLAS (syrk!).
+"""
+function pairwise_euclidean!(D::Matrix{Float64}, mat::Matrix{Float64})
+    n, p = size(mat)
+    norms = Vector{Float64}(undef, n)
     @inbounds for i in 1:n
-        for j in (i + 1):n
-            d = norm(view(mat, i, :) .- view(mat, j, :))
-            D[i, j] = d
-            D[j, i] = d
+        s = 0.0
+        @simd for j in 1:p
+            s += mat[i, j]^2
+        end
+        norms[i] = s
+    end
+
+    # Sfrutta le librerie BLAS C-level per il prodotto Gramiano
+    BLAS.syrk!('U', 'N', 1.0, mat, 0.0, D)
+
+    @inbounds for i in 1:n
+        D[i, i] = 0.0
+        for j in (i+1):n
+            gram = D[i, j]
+            d2 = norms[i] + norms[j] - 2.0 * gram
+            val = d2 > 0.0 ? sqrt(d2) : 0.0
+            D[i, j] = val
+            D[j, i] = val
         end
     end
     return D
 end
 
-function SaturnCoefficient(original_matrix::AbstractMatrix{<:Real}, 
-                           umap_output_layout::AbstractMatrix{<:Real};
-                           version::String="Maye")
-    
-    # 1. Standardizzazione iniziale per feature (ddof=0, esattamente come scikit-learn)
-    original_matrix_norm = standard_scaler(original_matrix)
-    umap_output_layout_norm = standard_scaler(umap_output_layout)
-    
-    # 2. Calcolo delle matrici simmetriche delle distanze pairwise (Dx e Dy)
-    original_matrix_norm_dist = pairwise_euclidean(original_matrix_norm)
-    umap_output_layout_dist = pairwise_euclidean(umap_output_layout_norm)
-    
-    # 3. Calcolo finale dell'Adjusted RV tra le due matrici di distanza
-    saturn = AdjustedRV(original_matrix_norm_dist, 
-                        umap_output_layout_dist; 
-                        version=version, 
-                        center=true)
+function pairwise_euclidean(mat::Matrix{Float64})
+    n = size(mat, 1)
+    D = Matrix{Float64}(undef, n, n)
+    return pairwise_euclidean!(D, mat)
+end
 
-    return saturn
+"""
+Calcola l'Adjusted RV coefficient (Mayer et al., 2011).
+"""
+function AdjustedRV(X1::Matrix{Float64}, X2::Matrix{Float64}; center::Bool=true)
+    n, p = size(X1)
+    _, q = size(X2)
+
+    X1_c = center ? X1 .- mean(X1, dims=1) : copy(X1)
+    X2_c = center ? X2 .- mean(X2, dims=1) : copy(X2)
+
+    AA = X1_c * X1_c'
+    BB = X2_c * X2_c'
+
+    ncols_prod = Float64(p * q)
+    ncols_1_sq = Float64(p * p)
+    ncols_2_sq = Float64(q * q)
+
+    X1s = standardize_ddof1(X1_c)
+    X2s = standardize_ddof1(X2_c)
+
+    AAs = X1s * X1s'
+    BBs = X2s * X2s'
+
+    factor = (n - 1.0) / (n - 2.0)
+    denom_sq = (n - 1.0)^2
+
+    tr_AAs_BBs = tr(AAs * BBs)
+    tr_AAs_AAs = tr(AAs * AAs)
+    tr_BBs_BBs = tr(BBs * BBs)
+
+    xy = tr_AAs_BBs / (ncols_prod - factor * (ncols_prod - tr_AAs_BBs / denom_sq))
+    xx = tr_AAs_AAs / (ncols_1_sq - factor * (ncols_1_sq - tr_AAs_AAs / denom_sq))
+    yy = tr_BBs_BBs / (ncols_2_sq - factor * (ncols_2_sq - tr_BBs_BBs / denom_sq))
+
+    val = (tr(AA * BB) / xy) / sqrt((tr(AA * AA) / xx) * (tr(BB * BB) / yy))
+    return val
+end
+
+"""
+Calcola il Saturn Coefficient tra X e Y.
+"""
+function SaturnCoefficient(X::Matrix{Float64}, Y::Matrix{Float64})
+    Xs = standard_scaler(X)
+    Ys = standard_scaler(Y)
+
+    Dx = pairwise_euclidean(Xs)
+    Dy = pairwise_euclidean(Ys)
+
+    return AdjustedRV(Dx, Dy; center=true)
 end
 
 end # module Saturn

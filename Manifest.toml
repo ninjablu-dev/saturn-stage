@@ -2,7 +2,7 @@
 
 julia_version = "1.12.1"
 manifest_format = "2.0"
-project_hash = "f66f9c17aed7466ead3d94fecedbbbcad5cfd251"
+project_hash = "691f3466d115601e46a1487868788603256317d7"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -281,6 +281,7 @@ uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 version = "0.7.0"
 
 [[deps.Saturn]]
+deps = ["CSV", "DataFrames", "LinearAlgebra", "Statistics"]
 path = "."
 uuid = "ba7cab78-9a66-4425-b90d-0d9eaa35973e"
 version = "0.1.0"
