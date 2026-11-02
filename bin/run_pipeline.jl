@@ -1,10 +1,32 @@
 import Pkg
 
-# 1. Configurazione ambiente
+# 1. Funzione per verificare ed installare i pacchetti mancanti
+function check_and_install_packages(packages::Vector{String})
+    installed = keys(Pkg.project().dependencies)
+    missing_pkgs = String[]
+    
+    for pkg in packages
+        if !(pkg in installed)
+            push!(missing_pkgs, pkg)
+        end
+    end
+    
+    if !isempty(missing_pkgs)
+        println("[JULIA] Pacchetti mancanti rilevati: ", join(missing_pkgs, ", "))
+        println("[JULIA] Inizio installazione automatica...")
+        Pkg.add(missing_pkgs)
+    end
+end
+
+# 2. Configurazione ambiente
 bin_dir = @__DIR__
 project_root = abspath(joinpath(bin_dir, ".."))
 
 Pkg.activate(project_root)
+
+# Controllo dipendenze essenziali (SOLO pacchetti di sistema / registrati su General)
+REQUIRED_PACKAGES = ["Printf", "CSV", "DataFrames", "Distances", "LinearAlgebra", "Statistics"]
+check_and_install_packages(REQUIRED_PACKAGES)
 
 using Printf
 
@@ -107,7 +129,7 @@ function run_pipeline()
 
     # 4. Riepilogo Tempi di Esecuzione Totali
     println("="^115)
-    println("                                  RIEPILOGO TEMPI DI ESECUZIONE                                          ")
+    println("                                   RIEPILOGO TEMPI DI ESECUZIONE                                         ")
     println("="^115)
     @printf("Tempo Totale Esecuzione Julia  : %.4f secondi (%.2f ms)\n", t_jl_elapsed, t_jl_elapsed * 1000)
     @printf("Tempo Totale Esecuzione Python : %.4f secondi (%.2f ms)\n", t_py_elapsed, t_py_elapsed * 1000)

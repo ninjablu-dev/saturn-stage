@@ -2,19 +2,30 @@ import sys
 import subprocess
 import os
 
-# 1. Aggiornamento pip ed installazione automatica dipendenze
-bash_command = f"{sys.executable} -m pip install --upgrade pip"
-subprocess.run(bash_command, shell=True, capture_output=True, text=True)
+# 1. Controllo ed installazione automatica delle dipendenze
+def check_and_install_packages(packages):
+    """
+    Verifica se i pacchetti Python richiesti sono installati.
+    Se ne manca qualcuno, lo installa automaticamente via pip.
+    """
+    for package, import_name in packages.items():
+        try:
+            __import__(import_name)
+        except ImportError:
+            print(f"[PYTHON] Pacchetto '{package}' non installato. Inizio installazione...")
+            subprocess.check_call([sys.executable, "-m", "pip", "install", package])
 
-libraries = ["numpy", "pandas", "scipy", "saturnscore"]
+# Mappa: "nome_pacchetto_pip": "nome_modulo_da_importare"
+REQUIRED_PACKAGES = {
+    "numpy": "numpy",
+    "pandas": "pandas",
+    "scipy": "scipy",
+    "saturnscore": "saturnscore"
+}
 
-for lib in libraries:
-    try:
-        __import__(lib)
-    except ImportError:
-        print(f"[PYTHON] Pacchetto '{lib}' non trovato. Installazione in corso...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", lib])
+check_and_install_packages(REQUIRED_PACKAGES)
 
+# 2. Import effettivi
 import numpy as np
 import pandas as pd
 from saturnscore import Saturn_coefficient
@@ -50,7 +61,7 @@ def main():
             print(f"[ATTENZIONE] File mancante per: {fname}")
             continue
 
-        # Carica solo le prime 10.000 righe da disco
+        # Carica le righe da disco
         df_orig = pd.read_csv(orig_path, nrows=SAMPLES_LIMIT).select_dtypes(include=[np.number])
         df_umap = pd.read_csv(umap_path, nrows=SAMPLES_LIMIT).select_dtypes(include=[np.number])
 

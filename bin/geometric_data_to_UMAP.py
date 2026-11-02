@@ -1,7 +1,35 @@
+import sys
+import subprocess
 import os
+
+# 1. Controllo ed installazione automatica delle dipendenze
+def check_and_install_packages(packages):
+    """
+    Verifica se i pacchetti Python richiesti sono installati.
+    Se ne manca qualcuno, lo installa automaticamente via pip.
+    """
+    for package, import_name in packages.items():
+        try:
+            __import__(import_name)
+        except ImportError:
+            print(f"[PYTHON] Pacchetto '{package}' non installato. Inizio installazione...")
+            subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+# Mappa: "nome_pacchetto_pip": "nome_modulo_da_importare"
+REQUIRED_PACKAGES = {
+    "numpy": "numpy",
+    "pandas": "pandas",
+    "scipy": "scipy",
+    "scikit-learn": "sklearn",
+    "umap-learn": "umap"
+}
+
+check_and_install_packages(REQUIRED_PACKAGES)
+
+# 2. Import effettivi
 import glob
-import pandas as pd
 import numpy as np
+import pandas as pd
 import umap
 
 def main():

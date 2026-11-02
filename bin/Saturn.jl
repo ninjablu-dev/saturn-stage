@@ -1,5 +1,29 @@
 module Saturn
 
+import Pkg
+
+# 1. Funzione per verificare ed installare i pacchetti mancanti
+function check_and_install_packages(packages::Vector{String})
+    installed = keys(Pkg.project().dependencies)
+    missing_pkgs = String[]
+    
+    for pkg in packages
+        if !(pkg in installed)
+            push!(missing_pkgs, pkg)
+        end
+    end
+    
+    if !isempty(missing_pkgs)
+        println("[JULIA - Saturn.jl] Pacchetti mancanti rilevati: ", join(missing_pkgs, ", "))
+        println("[JULIA - Saturn.jl] Inizio installazione automatica...")
+        Pkg.add(missing_pkgs)
+    end
+end
+
+# Controllo dipendenze essenziali del modulo
+REQUIRED_PACKAGES = ["Statistics", "LinearAlgebra"]
+check_and_install_packages(REQUIRED_PACKAGES)
+
 using Statistics
 using LinearAlgebra
 

@@ -1,23 +1,45 @@
 import Pkg
 
+# 1. Funzione per verificare ed installare i pacchetti mancanti
+function check_and_install_packages(packages::Vector{String})
+    installed = keys(Pkg.project().dependencies)
+    missing_pkgs = String[]
+    
+    for pkg in packages
+        if !(pkg in installed)
+            push!(missing_pkgs, pkg)
+        end
+    end
+    
+    if !isempty(missing_pkgs)
+        println("[JULIA] Pacchetti mancanti rilevati: ", join(missing_pkgs, ", "))
+        println("[JULIA] Inizio installazione automatica...")
+        Pkg.add(missing_pkgs)
+    end
+end
+
 bin_dir = @__DIR__
 project_root = abspath(joinpath(bin_dir, ".."))
 
 Pkg.activate(project_root)
+
+# Controllo dipendenze essenziali (SOLO pacchetti di sistema / registrati su General)
+REQUIRED_PACKAGES = ["CSV", "LinearAlgebra", "Statistics", "Printf"]
+check_and_install_packages(REQUIRED_PACKAGES)
 
 using CSV
 using LinearAlgebra
 using Statistics
 using Printf
 
+# Includiamo il modulo locale Saturn.jl
 saturn_path = joinpath(bin_dir, "Saturn.jl")
 include(saturn_path)
 using .Saturn
 
 function fast_read_csv(filepath::String)
-    # Legge direttamente le colonne numeri senza passare da DataFrame
+    # Legge direttamente le colonne numeriche senza passare da DataFrame
     rowtable = CSV.File(filepath)
-    cols = Float64[]
     n_rows = length(rowtable)
     
     first_row = first(rowtable)
