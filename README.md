@@ -9,7 +9,6 @@ For four different geometric datasets, the scripts generate two-dimensional repr
 ## Project structure
 Organized according to computational biology project guidelines (Noble, 2009; Schnell, 2015):
 - `bin/`: Executable Julia and Python files, including the core Julia implementation (`Saturn.jl`) and dataset generation scripts (`generate_datasets.py`).
-- `data/geometric_datasets/`: Standardized CSV files for the geometric datasets, UMAP output layouts, and reference Python scores.
 - test/: Some snippets of code to get familiar with Julia.
 
 ## Datasets availability
@@ -42,13 +41,14 @@ Given an input data matrix $A$ ($n$ rows as samples and $m$ columns as features)
 3. The similarity between $D_X$ and $D_Y$ is computed through the Adjusted RV coefficient: $\text{Saturn} = \text{AdjustedRV}(D_X, D_Y)$, yielding a real value in $[0, 1]$, where $0$ indicates no structure preservation and $1$ indicates complete structure preservation.
 
 ## Usage instructions
-1. To generate the geometric datasets in CSV format, run from the project root directory:
-
+### 1. Generate high-dimensional geometric datasets
     python bin/generate_datasets.py
 
-2. To run the Julia implementation and comparative validation tests from the project root directory:
+### 2. Compute 2D UMAP projections for all datasets
+    python bin/geometric_data_to_UMAP.py
 
-    julia bin/Saturn.jl
+### 3. Run the complete Julia-Python Saturn benchmark validation
+    julia bin/run_pipeline.jl
 
 ## Article
 Additional information about the Saturn coefficient is available in the reference publication:
