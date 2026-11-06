@@ -23,7 +23,7 @@ project_root = abspath(joinpath(bin_dir, ".."))
 
 Pkg.activate(project_root)
 
-# Controllo dipendenze essenziali (SOLO pacchetti di sistema / registrati su General)
+# Controllo dipendenze essenziali registrate
 REQUIRED_PACKAGES = ["CSV", "LinearAlgebra", "Statistics", "Printf"]
 check_and_install_packages(REQUIRED_PACKAGES)
 
@@ -38,7 +38,6 @@ include(saturn_path)
 using .Saturn
 
 function fast_read_csv(filepath::String)
-    # Legge direttamente le colonne numeriche senza passare da DataFrame
     rowtable = CSV.File(filepath)
     n_rows = length(rowtable)
     
