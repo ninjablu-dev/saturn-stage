@@ -12,12 +12,19 @@ Organized according to computational biology project guidelines (Noble, 2009; Sc
 - test/: Some snippets of code to get familiar with Julia.
 
 ## Datasets availability
-The geometric datasets employed in this study are generated deterministically using `scikit-learn` (`random_state=42`) and saved in `data/geometric_datasets/`:
-- **Neat Blobs** (`dataset_neat.csv`): 1,050 samples distributed across 3 well-separated Gaussian clusters (`cluster_std=0.8`).
-- **Two Moons** (`dataset_moons.csv`): 1,000 samples forming two interleaving non-linear half-circles (`noise=0.08`).
-- **Concentric Circles** (`dataset_circles.csv`): 1,100 samples arranged in concentric circular manifolds (`factor=0.5`, `noise=0.05`).
-- **S-Curve** (`dataset_scurve.csv`): 1,000 samples projected from a continuous non-linear manifold (`noise=0.05`).
+The geometric datasets employed in this study are generated deterministically using `scikit-learn` and saved in `data/geometric_datasets/`. Each dataset consists of 2,000 samples ($N=2000$) and 100 features ($M=100$):
 
+- **Concentric Circles** (`dataset_circles.csv`): 2,000 samples across 100 features, featuring 2D concentric circular manifolds (`factor=0.5`, `noise=0.05`) extended to 100D with Gaussian noise (`random_state=42`).
+
+- **Two Moons** (`dataset_moons.csv`): 2,000 samples across 100 features, forming two interleaving non-linear half-circles (`noise=0.05`) extended to 100D with Gaussian noise (`random_state=42`).
+
+- **Anisotropic Blobs** (`dataset_anisotropic.csv`): 2,000 samples across 100 features, generated with 3 clusters (`cluster_std=1.0`) and elongated using an affine transformation matrix (`random_state=170`).
+
+- **Varied Variance Blobs** (`dataset_varied_variance.csv`): 2,000 samples across 100 features, distributed across 3 Gaussian clusters with unequal variances (`cluster_std=[1.0, 2.5, 0.5]`, `random_state=170`).
+
+- **Isotropic / Neat Blobs** (`dataset_blobs.csv`): 2,000 samples across 100 features, distributed across 3 well-separated isotropic Gaussian clusters (`cluster_std=1.0`, `random_state=8`).
+
+- **Uniform / No Structure** (`dataset_no_structure.csv`): 2,000 samples across 100 features, generated from a uniform random distribution without any underlying cluster or manifold structure (`random_state=42`).
 To generate different dataset realizations, modify the `random_state` parameter in `bin/generate_datasets.py`. Keeping the same seed guarantees full reproducibility across runs.
 
 ## Code information, installation, and requirements
