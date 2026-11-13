@@ -27,9 +27,6 @@ check_and_install_packages(REQUIRED_PACKAGES)
 using Statistics
 using LinearAlgebra
 
-# Forza BLAS ad utilizzare 1 solo thread per un confronto equo mono-thread con Python
-BLAS.set_num_threads(1)
-
 export standard_scaler, standardize_ddof1, pairwise_euclidean, AdjustedRV, SaturnCoefficient
 
 """
@@ -94,7 +91,7 @@ function standardize_ddof1(mat::Matrix{Float64})
 end
 
 """
-Calcolo della matrice di distanza euclidea tramite BLAS (syrk!).
+Calcolo ultra-veloce della matrice di distanza euclidea tramite BLAS (syrk!).
 """
 function pairwise_euclidean!(D::Matrix{Float64}, mat::Matrix{Float64})
     n, p = size(mat)
@@ -107,7 +104,7 @@ function pairwise_euclidean!(D::Matrix{Float64}, mat::Matrix{Float64})
         norms[i] = s
     end
 
-    # Prodotto Gramiano tramite BLAS C-level (single-thread)
+    # Sfrutta le librerie BLAS C-level per il prodotto Gramiano
     BLAS.syrk!('U', 'N', 1.0, mat, 0.0, D)
 
     @inbounds for i in 1:n
