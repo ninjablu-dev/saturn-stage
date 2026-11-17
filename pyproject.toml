@@ -1,0 +1,5 @@
+[project]
+name = "saturn-stage"
+version = "0.1.0"
+description = "Benchmarking Saturn coefficient (Adjusted RV) between Python and Julia"
+requires-python = ">=3.14,<3.15"
