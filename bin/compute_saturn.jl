@@ -1,102 +1,92 @@
-import Pkg
+#!/usr/bin/env julia
+using Pkg
 
-# 1. Funzione per verificare ed installare i pacchetti mancanti
-function check_and_install_packages(packages::Vector{String})
-    installed = keys(Pkg.project().dependencies)
-    missing_pkgs = String[]
-    
-    for pkg in packages
-        if !(pkg in installed)
-            push!(missing_pkgs, pkg)
-        end
-    end
-    
-    if !isempty(missing_pkgs)
-        println("[JULIA] Pacchetti mancanti rilevati: ", join(missing_pkgs, ", "))
-        println("[JULIA] Inizio installazione automatica...")
-        Pkg.add(missing_pkgs)
-    end
-end
-
-bin_dir = @__DIR__
-project_root = abspath(joinpath(bin_dir, ".."))
-
-Pkg.activate(project_root)
-
-# Controllo dipendenze essenziali registrate
-REQUIRED_PACKAGES = ["CSV", "LinearAlgebra", "Statistics", "Printf"]
-check_and_install_packages(REQUIRED_PACKAGES)
+const BIN_DIR = @__DIR__
+const PROJECT_ROOT = abspath(joinpath(BIN_DIR, ".."))
+Pkg.activate(PROJECT_ROOT; io=devnull)
 
 using CSV
-using LinearAlgebra
-using Statistics
+using DataFrames
 using Printf
 
-# Includiamo il modulo locale Saturn.jl
-saturn_path = joinpath(bin_dir, "Saturn.jl")
-include(saturn_path)
+include(joinpath(BIN_DIR, "Saturn.jl"))
 using .Saturn
 
-function fast_read_csv(filepath::String)
-    rowtable = CSV.File(filepath)
-    n_rows = length(rowtable)
-    
-    first_row = first(rowtable)
-    num_cols = count(val -> val isa Number, first_row)
-    
-    mat = Matrix{Float64}(undef, n_rows, num_cols)
-    
-    for (i, row) in enumerate(rowtable)
-        col_idx = 1
-        for val in row
-            if val isa Number
-                mat[i, col_idx] = Float64(val)
-                col_idx += 1
-            end
+const SATURN_FN = isdefined(Saturn, :SaturnCoefficient) ? Saturn.SaturnCoefficient : Saturn.saturn_coefficient
+
+function find_original_file(target::AbstractString, project_root::AbstractString)::Union{String, Nothing}
+    if isfile(target)
+        return abspath(target)
+    end
+
+    data_dir = joinpath(project_root, "data")
+    isdir(data_dir) || return nothing
+
+    target_name = basename(target)
+    for (root, dirs, files) in walkdir(data_dir)
+        filter!(d -> !endswith(d, "_umap"), dirs)
+        if target_name in files
+            return joinpath(root, target_name)
         end
     end
-    return mat
+    return nothing
+end
+
+function find_umap_file(orig_path::AbstractString)::Union{String, Nothing}
+    fname = basename(orig_path)
+    orig_dir = dirname(orig_path)
+    data_root = dirname(orig_dir)
+    folder = basename(orig_dir)
+
+    candidates = [
+        joinpath(data_root, replace(folder, "_datasets" => "_umap"), "umap_" * fname),
+        joinpath(data_root, folder * "_umap", "umap_" * fname),
+        joinpath(orig_dir, "umap_" * fname),
+    ]
+
+    for path in candidates
+        if isfile(path)
+            return path
+        end
+    end
+    return nothing
+end
+
+function numeric_matrix(csv_path::AbstractString)::Matrix{Float64}
+    df = CSV.read(csv_path, DataFrame)
+    num_cols = [col for col in names(df) if nonmissingtype(eltype(df[!, col])) <: Number]
+    return Matrix{Float64}(df[:, num_cols])
 end
 
 function main()
-    orig_dir = joinpath(project_root, "data", "geometric_datasets")
-    if !isdir(orig_dir)
-        orig_dir = joinpath(project_root, "data", "geometric")
+    if isempty(ARGS)
+        println("Uso: ./compute_saturn.jl <file1.csv> [file2.csv ...]")
+        exit(1)
     end
-    umap_dir = joinpath(project_root, "data", "geometric_umap")
 
-    datasets = [
-        "dataset_circles.csv",
-        "dataset_moons.csv",
-        "dataset_anisotropic.csv",
-        "dataset_varied_variance.csv",
-        "dataset_blobs.csv",
-        "dataset_no_structure.csv"
-    ]
-
+    col_width = max(28, maximum(length(basename(f)) for f in ARGS))
     println("--- RISULTATI SATURN (JULIA - CALCOLO IN MEMORIA) ---")
 
-    # Warmup della compilazione JIT per isolare il benchmark
-    _dummy = Saturn.SaturnCoefficient(rand(10, 2), rand(10, 2))
-
-    t_start = time()
-    for fname in datasets
-        orig_path = joinpath(orig_dir, fname)
-        umap_path = joinpath(umap_dir, "umap_$fname")
-
-        if !isfile(orig_path) || !isfile(umap_path)
+    for target in ARGS
+        orig_path = find_original_file(target, PROJECT_ROOT)
+        if orig_path === nothing
+            println("[ATTENZIONE] File originale non trovato: $target")
             continue
         end
 
-        X = fast_read_csv(orig_path)
-        Y = fast_read_csv(umap_path)
+        fname = basename(orig_path)
+        umap_path = find_umap_file(orig_path)
+        if umap_path === nothing
+            println("[ATTENZIONE] File UMAP mancante per: $fname")
+            continue
+        end
 
-        saturn_score = Saturn.SaturnCoefficient(X, Y)
+        X = numeric_matrix(orig_path)
+        Y = numeric_matrix(umap_path)
 
-        @printf("Dataset: %-28s | Saturn Coefficient: %.20f\n", fname, saturn_score)
+        saturn_score = SATURN_FN(X, Y)
+        @printf("Dataset: %-*s | Saturn Coefficient: %.20f\n", col_width, fname, saturn_score)
     end
-    t_elapsed = time() - t_start
-    @printf("[JULIA WARM MATH TIME] %.4f s\n", t_elapsed)
 end
 
 main()
